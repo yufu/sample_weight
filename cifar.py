@@ -11,6 +11,12 @@ import torch.nn.functional as F
 from utils import adjusted_model_wrapper
 from transformers import ViTFeatureExtractor, ViTForImageClassification
 
+def vit_model_init(device, vit_name='google/vit-large-patch16-384-in21k'):
+    model = ViTForImageClassification.from_pretrained(vit_name)
+    model.to(device)
+    for param in model.parameters():
+        param.requires_grad = False
+    return model
 
 def main(config, posthoc_bias_correction=False):
     logger = config.get_logger('test')
@@ -65,8 +71,9 @@ def main(config, posthoc_bias_correction=False):
 
     record_list = []
 
-    test_distribution_set = ["forward50", "forward25", "forward10", "forward5", "forward2", "uniform", "backward2",
-                             "backward5", "backward10", "backward25", "backward50"]
+    # test_distribution_set = ["forward50", "forward25", "forward10", "forward5", "forward2", "uniform", "backward2",
+    #                          "backward5", "backward10", "backward25", "backward50"]
+    test_distribution_set = ['uniform']
     for test_distribution in test_distribution_set:
         print(test_distribution)
         data_loader = TestAgnosticImbalanceCIFAR100DataLoader(
@@ -98,7 +105,6 @@ def main(config, posthoc_bias_correction=False):
         print(*txt)
         i += 1
 
-def
 
 def mic_acc_cal(preds, labels):
     if isinstance(labels, tuple):

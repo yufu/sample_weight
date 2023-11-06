@@ -16,11 +16,12 @@ class CIFAR100DataLoader(DataLoader):
     """
     Load CIFAR 100
     """
-    def __init__(self, data_dir, batch_size, shuffle=True, num_workers=1, training=True):
+    def __init__(self, data_dir, batch_size, shuffle=True, num_workers=1, training=True, image_size=32):
         normalize = transforms.Normalize(mean=[0.5070751592371323, 0.48654887331495095, 0.4409178433670343],
             std=[0.2673342858792401, 0.2564384629170883, 0.27615047132568404])
         train_trsfm = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
+            transforms.Resize((image_size, image_size))
+            transforms.RandomCrop(image_size, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(15),
             transforms.ToTensor(),
@@ -97,8 +98,8 @@ class ImbalanceCIFAR100DataLoader(DataLoader):
     """
     Imbalance Cifar100 Data Loader
     """
-    def __init__(self, data_dir, batch_size, shuffle=True, num_workers=1, training=True, balanced=False, retain_epoch_size=True, imb_type='exp', imb_factor=0.01, randaugm=False, cutout=False, trivialaugm=False):
-        train_trsfm, test_trsfm = self.get_transformations(randaugm=randaugm, cutout=cutout, trivialaugm=trivialaugm)
+    def __init__(self, data_dir, batch_size, shuffle=True, num_workers=1, training=True, balanced=False, retain_epoch_size=True, imb_type='exp', imb_factor=0.01, randaugm=False, cutout=False, trivialaugm=False, image_size=32):
+        train_trsfm, test_trsfm = self.get_transformations(randaugm=randaugm, cutout=cutout, trivialaugm=trivialaugm, image_size=image_size)
         test_dataset = datasets.CIFAR100(data_dir, train=False, download=True, transform=test_trsfm) # test set
         
         if training:
@@ -141,18 +142,20 @@ class ImbalanceCIFAR100DataLoader(DataLoader):
 
         super().__init__(dataset=self.dataset, **self.init_kwargs, sampler=sampler) # Note that sampler does not apply to validation set
 
-    def get_transformations(self, randaugm=False, cutout=False, trivialaugm=False):
+    def get_transformations(self, randaugm=False, cutout=False, trivialaugm=False, image_size=32):
         if not randaugm and not cutout:
             normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
                                              std=[0.2023, 0.1994, 0.2010])
             train_trsfm = transforms.Compose([
-                transforms.RandomCrop(32, padding=4),
+                transforms.Resize((image_size, image_size)),
+                transforms.RandomCrop(image_size, padding=4),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomRotation(15),
                 transforms.ToTensor(),
                 normalize,
             ])
             test_trsfm = transforms.Compose([
+                transforms.Resize((image_size, image_size)),
                 transforms.ToTensor(),
                 normalize,
             ])
@@ -180,17 +183,19 @@ class  TestAgnosticImbalanceCIFAR100DataLoader(DataLoader):
     """
     Imbalance Cifar100 Data Loader
     """
-    def __init__(self, data_dir, batch_size, shuffle=True, num_workers=1, training=True, balanced=False, retain_epoch_size=True, imb_type='exp', imb_factor=0.01, test_imb_factor=0, reverse=False):
+    def __init__(self, data_dir, batch_size, shuffle=True, num_workers=1, training=True, balanced=False, retain_epoch_size=True, imb_type='exp', imb_factor=0.01, test_imb_factor=0, reverse=False, image_size=32):
         normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
             std=[0.2023, 0.1994, 0.2010])
         train_trsfm = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
+            transforms.Resize((image_size, image_size)),
+            transforms.RandomCrop(image_size, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(15),
             transforms.ToTensor(),
             normalize,
         ])
         test_trsfm = transforms.Compose([
+            transforms.Resize((image_size, image_size)),
             transforms.ToTensor(),
             normalize,
         ])
@@ -249,7 +254,7 @@ class ImbalanceCIFAR10DataLoader(DataLoader):
     """
     Imbalance Cifar10 Data Loader
     """
-    def __init__(self, data_dir, batch_size, shuffle=True, num_workers=1, training=True, balanced=False, retain_epoch_size=True, imb_factor=0.01, randaugm=False, cutout=False):
+    def __init__(self, data_dir, batch_size, shuffle=True, num_workers=1, training=True, balanced=False, retain_epoch_size=True, imb_factor=0.01, randaugm=False, cutout=False, image_size=32):
         train_trsfm, test_trsfm = self.get_transformations(randaugm=randaugm, cutout=cutout)
 
         if training:
@@ -292,12 +297,13 @@ class ImbalanceCIFAR10DataLoader(DataLoader):
 
         super().__init__(dataset=self.dataset, **self.init_kwargs, sampler=sampler) # Note that sampler does not apply to validation set
 
-    def get_transformations(self, randaugm=False, cutout=False):
+    def get_transformations(self, randaugm=False, cutout=False, image_size=32):
         if not randaugm and not cutout:
             normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
                                              std=[0.2023, 0.1994, 0.2010])
             train_trsfm = transforms.Compose([
-                transforms.RandomCrop(32, padding=4),
+                transforms.Resize((image_size, image_size)),
+                transforms.RandomCrop(image_size, padding=4),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomRotation(15),
                 transforms.ToTensor(),
