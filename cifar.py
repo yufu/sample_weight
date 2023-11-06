@@ -8,11 +8,11 @@ import numpy as np
 from parse_config import ConfigParser
 import torch.nn.functional as F
 
-from utils import adjusted_model_wrapper
-from transformers import ViTFeatureExtractor, ViTForImageClassification
+from transformers import ViTFeatureExtractor, ViTModel
 
-def vit_model_init(device, vit_name='google/vit-large-patch16-384-in21k'):
-    model = ViTForImageClassification.from_pretrained(vit_name)
+image_size=224
+def vit_model_init(device, vit_name='google/vit-large-patch16-224-in21k'):
+    model = ViTModel.from_pretrained(vit_name)
     model.to(device)
     for param in model.parameters():
         param.requires_grad = False
@@ -42,7 +42,8 @@ def main(config, posthoc_bias_correction=False):
         shuffle=False,
         training=True,
         num_workers=8,
-        imb_factor=config['data_loader']['args']['imb_factor']
+        imb_factor=config['data_loader']['args']['imb_factor'],
+        image_size=image_size
     )
     train_cls_num_list = train_data_loader.cls_num_list
     train_cls_num_list = torch.tensor(train_cls_num_list)
@@ -50,15 +51,13 @@ def main(config, posthoc_bias_correction=False):
     few_shot = train_cls_num_list < 20
     medium_shot = ~many_shot & ~few_shot
 
-    num_classes = config._config["arch"]["args"]["num_classes"]
-
     total_feat = torch.empty((0)).cuda()
     with torch.no_grad():
         for i, (data, target) in enumerate(tqdm(train_data_loader)):
             data, target = data.to(device), target.to(device)
-            feat = model(data)
-            feat = model(data)
+            feat = model(data)['pooler_output']
             total_feat = torch.cat((total_feat, feat))
+        
 
 
 
