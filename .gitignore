@@ -1,2 +1,6 @@
 .idea/
 data/
+saved/*
+images/*
+*.pth
+*.pyc
