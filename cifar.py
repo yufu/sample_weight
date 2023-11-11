@@ -55,9 +55,9 @@ def main(config, posthoc_bias_correction=False):
     few_shot = train_cls_num_list < 20
     medium_shot = ~many_shot & ~few_shot
 
-    evaluate_dist_image()
+    # evaluate_dist_image()
     # evaluate(train_data_loader, device, model)
-
+    compare_distrib()
 
 def evaluate(train_data_loader, device, model):
     class_number = 100
@@ -84,10 +84,9 @@ def evaluate(train_data_loader, device, model):
         torch.save(total_dists, 'total_dists.pth')
 
 def evaluate_dist_image():
-    class_centers = torch.load("class_centers.pth")
-    total_feat = torch.load('total_feat_cifar.pth')
-    total_labels = torch.load('total_labels.pth')
-    total_dists = torch.load('total_dists.pth')
+    # class_centers = torch.load("class_centers.pth")
+    total_labels = torch.load('total_labels_cifar.pth')
+    total_dists = torch.load('total_dists_cifar100_balpoe.pth')
     data_all = torch.empty((0))
     transform = transforms.Compose(
         [transforms.Resize(image_size), 
@@ -112,7 +111,7 @@ def evaluate_dist_image():
         k_dists = total_dists[total_labels == k]
         sort_k_dists_val, sort_k_dists_ind = torch.sort(k_dists)
         
-        dir = "./images/" + str(k)
+        dir = "./images_balpoe/" + str(k)
         if not os.path.exists(dir):
             os.mkdir(dir)
         for i in range(len(sort_k_dists_ind)):
@@ -122,7 +121,94 @@ def evaluate_dist_image():
             image.save(os.path.join(dir,f'{sort_k_dists_val[i].item():.3f}' + ".png"))  # 将图像保存为PNG文件
 
 
+def compare_distrib():
+    vit = torch.load("total_dists_cifar.pth").cpu()
+    bal = torch.load("total_dists_cifar100_balpoe.pth").cpu()
+    labels = torch.load("total_labels_cifar.pth").cpu()
+    import os
+    import matplotlib.pyplot as plt
+    # compare vit and bal distrib
+    # for i in range(100):
+    #     vit_i = vit[labels == i]
+    #     bal_i = bal[labels == i]
+    #     plt.clf()
+    #     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))  # 1行2列的子图
+    #     ax1.hist(vit_i, bins=20, color='blue', alpha=0.7)
+    #     ax2.hist(bal_i, bins=20, color='blue', alpha=0.7)
+    #     ax1.set_title("vit")
+    #     ax2.set_title("bal")
+    #     plt.savefig(os.path.join(save_dir, str(i)+"png"))
+    #     plt.close()
+    def plot_ax(ax, data, name):
+        ax.hist(data, bins=20, color='blue', alpha=0.7)
+        ax.set_title(name)
 
+    def pow_bal(bal, vit, labels):
+        save_dir = "./bal_hist"
+
+        # use pow for bal
+        for i in range(100):
+            bal_i = bal[labels == i]
+            vit_i = vit[labels == i]
+            plt.clf()
+            fig, (l1, l2) = plt.subplots(2, 6, figsize=(20, 8))  # 1行2列的子图
+
+            plot_ax(l1[0], vit_i, name='vit_i')
+            for k in range(1, 6):
+                plot_ax(l1[k], torch.pow(bal_i, 1/k), name=f"bal.pow(1/{k}")
+
+            for m in range(0, 6):
+                plot_ax(l2[m], torch.pow(bal_i, 1 / (m+6)), name=f"bal.pow(1/{m+6})")
+
+            plt.savefig(os.path.join(save_dir, str(i)+".png"))
+            plt.close()
+    def box_cox(bal, vit, labels):
+        from scipy import stats
+        import numpy as np
+        save_dir = "./boxcox"
+        for i in range(100):
+            bal_i = bal[labels == i]
+            vit_i = vit[labels == i]
+            transformed_data, lambda_value = stats.boxcox(bal_i.numpy())
+            fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
+            plot_ax(ax0, vit_i, name='vit')
+            plot_ax(ax1, transformed_data, name='box-cox')
+            plt.savefig(os.path.join(save_dir, str(i)+".png"))
+            plt.close()
+    def e_transform(bal, vit, labels):
+        import os
+        save_dir = "./exp_hist"
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
+        for i in range(100):
+            bal_i = bal[labels == i]
+            vit_i = vit[labels == i]
+            transformed_data =  torch.exp(bal_i)
+            fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
+            plot_ax(ax0, vit_i, name='vit')
+            plot_ax(ax1, transformed_data, name='exp')
+            plt.savefig(os.path.join(save_dir, str(i)+".png"))
+            plt.close()
+    def kde(bal, vit, labels):
+        import os
+        save_dir = "./kde_hist"
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
+        from scipy.stats import norm
+        kernel = norm(loc=0, scale=1.0)
+        for i in range(100):
+            bal_i = bal[labels == i]
+            vit_i = vit[labels == i]
+            x = np.linspace(bal_i.min(), bal_i.max(), 1000)
+            kde_values = torch.tensor([kernel.pdf(x - d).mean() for d in bal_i.numpy()])
+            fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
+            plot_ax(ax0, vit_i, name='vit')
+            plot_ax(ax1, kde_values, name='kde_values')
+            plt.savefig(os.path.join(save_dir, str(i) + ".png"))
+            plt.close()
+    kde(bal, vit, labels)
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser(description='PyTorch Template')
