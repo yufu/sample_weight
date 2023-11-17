@@ -190,6 +190,40 @@ def compare_distrib():
             plot_ax(ax1, transformed_data, name='exp')
             plt.savefig(os.path.join(save_dir, str(i)+".png"))
             plt.close()
+    def e_transform2(bal, vit, labels):
+        import os
+        save_dir = "./pow(exp(-x)_-1)_hist"
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
+        for i in range(100):
+            bal_i = bal[labels == i]
+            vit_i = vit[labels == i]
+            transformed_data =  1/torch.exp(-bal_i)
+            fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
+            plot_ax(ax0, vit_i, name='vit')
+            plot_ax(ax1, transformed_data, name='1/exp(-x)')
+            plt.savefig(os.path.join(save_dir, str(i)+".png"))
+            plt.close()
+
+
+    def log_transform(bal, vit, labels):
+        import os
+        save_dir = "./log_hist"
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
+        for i in range(100):
+            bal_i = bal[labels == i]
+            vit_i = vit[labels == i]
+            transformed_data =  torch.log(bal_i)
+            fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
+            plot_ax(ax0, vit_i, name='vit')
+            plot_ax(ax1, transformed_data, name='log')
+            plt.savefig(os.path.join(save_dir, str(i)+".png"))
+            plt.close()
+
+
     def kde(bal, vit, labels):
         import os
         save_dir = "./kde_hist"
@@ -201,6 +235,7 @@ def compare_distrib():
         for i in range(100):
             bal_i = bal[labels == i]
             vit_i = vit[labels == i]
+            kernel = norm(loc=0, scale=1.0)
             x = np.linspace(bal_i.min(), bal_i.max(), 1000)
             kde_values = torch.tensor([kernel.pdf(x - d).mean() for d in bal_i.numpy()])
             fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
@@ -208,7 +243,7 @@ def compare_distrib():
             plot_ax(ax1, kde_values, name='kde_values')
             plt.savefig(os.path.join(save_dir, str(i) + ".png"))
             plt.close()
-    kde(bal, vit, labels)
+    e_transform2(bal, vit, labels)
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser(description='PyTorch Template')
