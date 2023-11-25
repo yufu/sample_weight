@@ -46,7 +46,6 @@ def main(config, posthoc_bias_correction=False):
         shuffle=False,
         training=True,
         num_workers=8,
-        imb_factor=config['data_loader']['args']['imb_factor'],
         image_size=image_size
     )
     train_cls_num_list = train_data_loader.cls_num_list
@@ -56,8 +55,8 @@ def main(config, posthoc_bias_correction=False):
     medium_shot = ~many_shot & ~few_shot
 
     # evaluate_dist_image()
-    evaluate(train_data_loader, device, model)
-    # compare_distrib()
+    # evaluate(train_data_loader, device, model)
+    compare_distrib()
 
 def evaluate(train_data_loader, device, model):
     class_number = 100
@@ -75,13 +74,13 @@ def evaluate(train_data_loader, device, model):
         total_dists = torch.zeros_like(total_labels).cuda()
         for i in range(class_number):
             class_centers = torch.cat((class_centers, total_feat[total_labels == i].mean(dim=0)[None, :]), dim=0)
-            total_dists[total_labels == i] = torch.cdist(class_centers[i][None, :], total_feat[total_labels == i], p=1)
+            total_dists[total_labels == i] = torch.cdist(class_centers[i][None, :], total_feat[total_labels == i], p=2)
         # calculate distances
 
-        torch.save(total_feat, "total_feat_cifar100_p1.pth")
-        torch.save(class_centers, 'class_centers_cifar100_p1.pth')
-        torch.save(total_labels, 'total_labels_cifar100_p1.pth')
-        torch.save(total_dists, 'total_dists_cifar100_p1.pth')
+        torch.save(total_feat, "total_feat_cifar_vit_balance.pth")
+        torch.save(class_centers, 'class_centers_vit_balance.pth')
+        torch.save(total_labels, 'total_labels_vit_balance.pth')
+        torch.save(total_dists, 'total_dists_vit_balance.pth')
 
 def evaluate_dist_image():
     # class_centers = torch.load("class_centers.pth")
@@ -122,7 +121,7 @@ def evaluate_dist_image():
 
 
 def compare_distrib():
-    vit = torch.load("total_dists_cifar.pth").cpu()
+    vit = torch.load("total_dists_vit_balance.pth").cpu()
     bal = torch.load("total_dists_cifar100_balpoe.pth").cpu()
     labels = torch.load("total_labels_cifar.pth").cpu()
     import os
@@ -154,7 +153,13 @@ def compare_distrib():
         ax2.set_title("bal")
         plt.savefig(os.path.join(save_dir, "vit_bal_all_compare.png"))
         plt.close()
-
+    def shlow_single_distrib(data):
+        save_dir = "./"
+        fig, (ax1) = plt.subplots(1, 1, figsize=(10, 10))  # 1行2列的子图
+        ax1.hist(data, bins=20, color='blue', alpha=0.7)
+        ax1.set_title("vit")
+        plt.savefig(os.path.join(save_dir, "vit_all_balance_cifar100.png"))
+        plt.close()
     def plot_ax(ax, data, name):
         ax.hist(data, bins=20, color='blue', alpha=0.7)
         ax.set_title(name)
@@ -211,6 +216,7 @@ def compare_distrib():
         plot_ax(ax1, transformed_data, name='box-cox')
         plt.savefig(os.path.join(save_dir, "vit_bal_all_boxcox_translate_compare.png"))
         plt.close()
+
 
 
     def e_transform(bal, vit, labels):
@@ -338,20 +344,11 @@ def compare_distrib():
         # Print the results
         print(f"Skewness: {skewness}")
         print(f"Kurtosis: {kurt}")
-    def qq_draw(data, distrib='norm'):
-        from scipy.stats import probplot
 
-        # 绘制 Q-Q 图
-        probplot(data, dist=distrib, plot=plt)
+    # box_cox_all(bal, vit)
 
+    shlow_single_distrib(vit)
 
-        plt.title('Q-Q Plot - Normal Distribution')
-        plt.savefig("qq_bal_cifar100_norm.jpg")
-
-    # skew_kurtosis(vit)
-    # skew_kurtosis(bal)
-    # skew_kurtosis_box_cox(bal)
-    qq_draw(bal)
 
 
 
