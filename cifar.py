@@ -56,9 +56,9 @@ def main(config, posthoc_bias_correction=False):
     medium_shot = ~many_shot & ~few_shot
 
     # evaluate_dist_image()
-    evaluate(train_data_loader, device, model)
+    # evaluate(train_data_loader, device, model)
     # compare_distrib()
-
+    predict(train_data_loader, device, model)
 def evaluate(train_data_loader, device, model):
     class_number = 100
 
@@ -75,13 +75,28 @@ def evaluate(train_data_loader, device, model):
         total_dists = torch.zeros_like(total_labels).cuda()
         for i in range(class_number):
             class_centers = torch.cat((class_centers, total_feat[total_labels == i].mean(dim=0)[None, :]), dim=0)
-            total_dists[total_labels == i] = torch.cdist(class_centers[i][None, :], total_feat[total_labels == i], p=1)
+            total_dists[total_labels == i] = torch.cdist(class_centers[i][None, :], total_feat[total_labels == i], p=3)
         # calculate distances
 
-        torch.save(total_feat, "total_feat_cifar100_p1.pth")
-        torch.save(class_centers, 'class_centers_cifar100_p1.pth')
-        torch.save(total_labels, 'total_labels_cifar100_p1.pth')
-        torch.save(total_dists, 'total_dists_cifar100_p1.pth')
+        torch.save(total_feat, "total_feat_cifar100_p3_vit.pth")
+        torch.save(class_centers, 'class_centers_cifar100_p3_vit.pth')
+        torch.save(total_labels, 'total_labels_cifar100_p3_vit.pth')
+        torch.save(total_dists, 'total_dists_cifar100_p3_vit.pth')
+
+def predict(train_data_loader, device, model):
+    class_number = 100
+
+    total_feat = torch.empty((0)).cuda()
+    total_labels = torch.empty((0)).cuda()
+    class_centers = torch.empty((0)).cuda()
+    with torch.no_grad():
+        for i, (data, target) in enumerate(tqdm(train_data_loader)):
+            data, target = data.to(device), target.to(device)
+            logits = model(data).logits
+            predicted_class = torch.argmax(logits, dim=1).item()
+            c = 1
+
+
 
 def evaluate_dist_image():
     # class_centers = torch.load("class_centers.pth")
@@ -122,9 +137,9 @@ def evaluate_dist_image():
 
 
 def compare_distrib():
-    vit = torch.load("total_dists_cifar.pth").cpu()
-    bal = torch.load("total_dists_cifar100_balpoe.pth").cpu()
-    labels = torch.load("total_labels_cifar.pth").cpu()
+    vit = torch.load("total_dists_vit_balance.pth").cpu()
+    bal = torch.load("total_dists_cifar100_balpoe_p2.pth").cpu()
+    labels = torch.load("total_labels_vit_balance.pth").cpu()
     import os
     import matplotlib.pyplot as plt
 
@@ -144,6 +159,34 @@ def compare_distrib():
             plt.savefig(os.path.join(save_dir, str(i)+"png"))
             plt.close()
 
+    def balanced_class_specified_distrib(vit):
+        save_dir = "./blc_vit_hist"
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+        # compare vit and bal distrib
+        for i in range(100):
+            vit_i = vit[labels == i]
+            plt.clf()
+            plt.hist(vit_i, bins=20, color='blue', alpha=0.7)
+            plt.title("vit distance distribution balanced cifar 100")
+            plt.savefig(os.path.join(save_dir, str(i)+"png"))
+            plt.close()
+    def verify_CLT(vit, bal):
+        means_vit = np.empty((0))
+        means_bal = np.empty((0))
+        for i in range(100):
+            vit_i = vit[labels == i]
+            # bal_i = bal[labels == i]
+            means_vit = np.concatenate((means_vit, vit_i.mean().unsqueeze(dim=0).numpy()))
+            # means_bal = np.concatenate((means_bal, bal_i.mean().unsqueeze(dim=0).numpy()))
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))  # 1行2列的子图
+        ax1.hist(means_vit, bins=20, color='blue', alpha=0.7)
+        ax2.hist(means_vit, bins=20, color='blue', alpha=0.7)
+        ax1.set_title("vit balance CLT")
+        ax2.set_title("bal CLT")
+        plt.savefig("verify_clt_blc.png")
+        plt.close()
     def compare_all_distrib():
         # compare all distrib
         save_dir = "./"
@@ -191,6 +234,30 @@ def compare_distrib():
             plot_ax(ax1, transformed_data, name='box-cox')
             plt.savefig(os.path.join(save_dir, str(i)+".png"))
             plt.close()
+
+    def box_cox_2(bal, vit, labels):
+        from scipy import stats
+        import numpy as np
+        save_dir = "./"
+        for i in range(100):
+            bal_i = bal[labels == i]
+            vit_i = vit[labels == i]
+            transformed_data, lambda_value = stats.boxcox(bal_i.numpy())
+            transformed_data = transformed_data / (max(transformed_data) - min(transformed_data))
+            bal_i = bal_i / (max(bal_i) - min(bal_i))
+
+            # get gap between two datasets
+            gap = bal_i.min() - transformed_data.min()
+
+            # get the final result
+            transformed_data = transformed_data + gap.numpy()
+            bal[labels == i] = torch.tensor(transformed_data)
+        return bal, vit
+        # fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
+        # plot_ax(ax0, vit, name='vit')
+        # plot_ax(ax1, bal, name='box-cox')
+        # plt.savefig(os.path.join(save_dir, "box-cox-class-specific-all-norm.png"))
+        # plt.close()
 
     def box_cox_all(bal, vit):
         from scipy import stats
@@ -338,7 +405,7 @@ def compare_distrib():
         # Print the results
         print(f"Skewness: {skewness}")
         print(f"Kurtosis: {kurt}")
-    def qq_draw(data, distrib='norm'):
+    def qq_draw(data, name, distrib='norm'):
         from scipy.stats import probplot
 
         # 绘制 Q-Q 图
@@ -346,12 +413,33 @@ def compare_distrib():
 
 
         plt.title('Q-Q Plot - Normal Distribution')
-        plt.savefig("qq_bal_cifar100_norm.jpg")
+        plt.savefig(name + ".jpg")
+
+    def qq_draw_box_cox(bal):
+        from scipy import stats
+        from scipy.stats import probplot
+
+        transformed_data, lambda_value = stats.boxcox(bal.numpy())
+        transformed_data = transformed_data / (max(transformed_data) - min(transformed_data))
+        bal = bal / (max(bal) - min(bal))
+
+        # get gap between two datasets
+        gap = bal.min() - transformed_data.min()
+
+        # get the final result
+        transformed_data = transformed_data + gap.numpy()
+        probplot(transformed_data, dist='norm', plot=plt)
+        plt.title('Q-Q Plot -Box-cox transformed data ')
+        plt.savefig("qq_bal_cifar100_norm_p2_box_cox.jpg")
+
 
     # skew_kurtosis(vit)
     # skew_kurtosis(bal)
     # skew_kurtosis_box_cox(bal)
-    qq_draw(bal)
+    # bal, vit = box_cox_2(bal, vit, labels)
+    # qq_draw(bal, name='bal_max_min_all')
+    verify_CLT(vit, bal)
+
 
 
 

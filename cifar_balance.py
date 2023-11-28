@@ -8,15 +8,18 @@ import numpy as np
 from parse_config import ConfigParser
 import torch.nn.functional as F
 from data_loader.imbalance_cifar import IMBALANCECIFAR100
-from transformers import ViTFeatureExtractor, ViTModel
+from transformers import ViTFeatureExtractor, ViTModel, ViTForImageClassification
 from PIL import Image
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
+import torch.nn as nn
+import torch.optim as optim
+
 
 image_size=224
 batch_size = 256
 def vit_model_init(device, vit_name='google/vit-large-patch16-224-in21k'):
-    model = ViTModel.from_pretrained(vit_name)
+    model = ViTModel.from_pretrained(vit_name, num_labels=100)
     model.to(device)
     for param in model.parameters():
         param.requires_grad = False
@@ -56,7 +59,69 @@ def main(config, posthoc_bias_correction=False):
 
     # evaluate_dist_image()
     # evaluate(train_data_loader, device, model)
-    compare_distrib()
+    # compare_distrib()
+
+    predict(train_data_loader, device, model)
+
+def train_classifier(data_loader, model_name):
+
+    feature_extractor = ViTFeatureExtractor.from_pretrained(model_name)
+    model = ViTForImageClassification.from_pretrained(model_name, num_labels=100)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    num_epochs = 10
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+
+        for inputs, labels in tqdm(data_loader, desc=f"Epoch {epoch + 1}/{num_epochs}"):
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            optimizer.zero_grad()
+
+            outputs = model(**feature_extractor(images=inputs, return_tensors="pt"), labels=labels)
+            loss = outputs.loss
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+
+        print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {running_loss / len(data_loader)}")
+
+    print("Training complete.")
+
+def eval_classifier(test_loader, model, feature_extractor, device):
+    confusion_matrix = torch.zeros(100, 100).cuda()
+
+    with torch.no_grad():
+        for inputs, labels in tqdm(test_loader, desc="Testing"):
+            inputs, labels = inputs.to(device), labels.to(device)
+
+            outputs = model(**feature_extractor(images=inputs, return_tensors="pt"))
+            # predictions = torch.argmax(outputs.logits, dim=1)
+            for t, p in zip(labels.view(-1), outputs.logits.argmax(dim=1).view(-1)):
+                confusion_matrix[t.long(), p.long()] += 1
+            total_logits = torch.cat((total_logits, outputs.logits))
+            total_labels = torch.cat((total_labels, labels))
+
+
+def predict(train_data_loader, device, model):
+    class_number = 100
+
+    total_feat = torch.empty((0)).cuda()
+    total_labels = torch.empty((0)).cuda()
+    class_centers = torch.empty((0)).cuda()
+    with torch.no_grad():
+        for i, (data, target) in enumerate(tqdm(train_data_loader)):
+            data, target = data.to(device), target.to(device)
+            logits = model(data).logits
+            predicted_class = torch.argmax(logits, dim=1).item()
+            c = 1
+
+
 
 def evaluate(train_data_loader, device, model):
     class_number = 100

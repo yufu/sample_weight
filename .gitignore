@@ -1,3 +1,5 @@
+ImageNet_dist_balance/
+data_txt/
 *hist/
 .idea/
 data/
