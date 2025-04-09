@@ -45,7 +45,7 @@ def compare_class_specified_distrib():
         ax2.hist(bal_i, bins=20, color='blue', alpha=0.7)
         ax1.set_title("vit")
         ax2.set_title("bal")
-        plt.savefig(os.path.join(save_dir, str(i)+"png"))
+        plt.savefig(os.path.join(save_dir, str(i)+"pdf"))
         plt.close()
 
 def balanced_class_specified_distrib(vit):
@@ -58,7 +58,7 @@ def balanced_class_specified_distrib(vit):
         plt.clf()
         plt.hist(vit_i, bins=20, color='blue', alpha=0.7)
         plt.title("vit distance distribution balanced cifar 100")
-        plt.savefig(os.path.join(save_dir, str(i)+"png"))
+        plt.savefig(os.path.join(save_dir, str(i)+"pdf"))
         plt.close()
 def verify_CLT(vit, bal):
     means_vit = np.empty((0))
@@ -74,7 +74,7 @@ def verify_CLT(vit, bal):
     ax2.hist(means_vit, bins=20, color='blue', alpha=0.7)
     ax1.set_title("vit balance CLT")
     ax2.set_title("bal CLT")
-    plt.savefig("verify_clt_blc.png")
+    plt.savefig("verify_clt_blc.pdf")
     plt.close()
 def compare_all_distrib():
     # compare all distrib
@@ -84,7 +84,7 @@ def compare_all_distrib():
     ax2.hist(bal, bins=20, color='blue', alpha=0.7)
     ax1.set_title("vit")
     ax2.set_title("bal")
-    plt.savefig(os.path.join(save_dir, "vit_bal_all_compare.png"))
+    plt.savefig(os.path.join(save_dir, "vit_bal_all_compare.pdf"))
     plt.close()
 
 def plot_ax(ax, data, name):
@@ -108,7 +108,7 @@ def pow_bal(bal, vit, labels):
         for m in range(0, 6):
             plot_ax(l2[m], torch.pow(bal_i, 1 / (m+6)), name=f"bal.pow(1/{m+6})")
 
-        plt.savefig(os.path.join(save_dir, str(i)+".png"))
+        plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
         plt.close()
 def box_cox(bal, vit, labels):
     from scipy import stats
@@ -121,7 +121,7 @@ def box_cox(bal, vit, labels):
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
         plot_ax(ax0, vit_i, name='vit')
         plot_ax(ax1, transformed_data, name='box-cox')
-        plt.savefig(os.path.join(save_dir, str(i)+".png"))
+        plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
         plt.close()
 
 def box_cox_2(bal, vit, labels):
@@ -145,7 +145,7 @@ def box_cox_2(bal, vit, labels):
     # fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
     # plot_ax(ax0, vit, name='vit')
     # plot_ax(ax1, bal, name='box-cox')
-    # plt.savefig(os.path.join(save_dir, "box-cox-class-specific-all-norm.png"))
+    # plt.savefig(os.path.join(save_dir, "box-cox-class-specific-all-norm.pdf"))
     # plt.close()
 
 def box_cox_all(bal, vit):
@@ -165,7 +165,7 @@ def box_cox_all(bal, vit):
     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
     plot_ax(ax0, vit, name='vit')
     plot_ax(ax1, transformed_data, name='box-cox')
-    plt.savefig(os.path.join(save_dir, "vit_bal_all_boxcox_translate_compare.png"))
+    plt.savefig(os.path.join(save_dir, "vit_bal_all_boxcox_translate_compare.pdf"))
     plt.close()
 
 
@@ -182,7 +182,7 @@ def e_transform(bal, vit, labels):
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
         plot_ax(ax0, vit_i, name='vit')
         plot_ax(ax1, transformed_data, name='exp')
-        plt.savefig(os.path.join(save_dir, str(i)+".png"))
+        plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
         plt.close()
 def e_transform2(bal, vit, labels):
     import os
@@ -197,7 +197,7 @@ def e_transform2(bal, vit, labels):
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
         plot_ax(ax0, vit_i, name='vit')
         plot_ax(ax1, transformed_data, name='1/exp(-x)')
-        plt.savefig(os.path.join(save_dir, str(i)+".png"))
+        plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
         plt.close()
 
 
@@ -214,7 +214,7 @@ def log_transform(bal, vit, labels):
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
         plot_ax(ax0, vit_i, name='vit')
         plot_ax(ax1, transformed_data, name='log')
-        plt.savefig(os.path.join(save_dir, str(i)+".png"))
+        plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
         plt.close()
 
 
@@ -235,7 +235,7 @@ def kde(bal, vit, labels):
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
         plot_ax(ax0, vit_i, name='vit')
         plot_ax(ax1, kde_values, name='kde_values')
-        plt.savefig(os.path.join(save_dir, str(i) + ".png"))
+        plt.savefig(os.path.join(save_dir, str(i) + ".pdf"))
         plt.close()
 # e_transform2(bal, vit, labels)
 def shapiro_wilk_test(data):
@@ -302,7 +302,7 @@ def qq_draw(data, name, distrib='norm'):
 
 
     plt.title('Q-Q Plot - Normal Distribution')
-    plt.savefig(name + ".jpg")
+    plt.savefig('Comparisons/' + name + ".pdf")
 
 def qq_draw_box_cox(bal):
     from scipy import stats
@@ -319,7 +319,7 @@ def qq_draw_box_cox(bal):
     transformed_data = transformed_data + gap.numpy()
     probplot(transformed_data, dist='norm', plot=plt)
     plt.title('Q-Q Plot -Box-cox transformed data ')
-    plt.savefig("qq_bal_cifar100_norm_p2_box_cox.jpg")
+    plt.savefig("Comparisons/qq_bal_cifar100_norm_p2_box_cox.pdf")
 
 
     # skew_kurtosis(vit)

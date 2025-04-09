@@ -59,9 +59,9 @@ def main(config, posthoc_bias_correction=False):
 
     # evaluate_dist_image()
     # evaluate(train_data_loader, device, model)
-    # compare_distrib()
+    compare_distrib()
 
-    predict(train_data_loader, device, model)
+    # predict(train_data_loader, device, model)
 
 def train_classifier(data_loader, model_name):
 
@@ -182,13 +182,13 @@ def evaluate_dist_image():
             image = Image.fromarray(k_images[i])
 
             # 保存图像
-            image.save(os.path.join(dir,f'{sort_k_dists_val[i].item():.3f}' + ".png"))  # 将图像保存为PNG文件
+            image.save(os.path.join(dir,f'{sort_k_dists_val[i].item():.3f}' + ".pdf"))  # 将图像保存为pdf文件
 
 
 def compare_distrib():
-    vit = torch.load("total_dists_vit_balance.pth").cpu()
-    bal = torch.load("total_dists_cifar100_balpoe.pth").cpu()
-    labels = torch.load("total_labels_cifar.pth").cpu()
+    vit = torch.load("pth/total_dists_vit_balance.pth").cpu()
+    bal = torch.load("pth/total_dists_cifar100_balpoe_p2.pth").cpu()
+    labels = torch.load("pth/total_labels_cifar.pth").cpu()
     import os
     import matplotlib.pyplot as plt
 
@@ -205,7 +205,7 @@ def compare_distrib():
             ax2.hist(bal_i, bins=20, color='blue', alpha=0.7)
             ax1.set_title("vit")
             ax2.set_title("bal")
-            plt.savefig(os.path.join(save_dir, str(i)+"png"))
+            plt.savefig(os.path.join(save_dir, str(i)+"pdf"))
             plt.close()
 
     def compare_all_distrib():
@@ -216,18 +216,19 @@ def compare_distrib():
         ax2.hist(bal, bins=20, color='blue', alpha=0.7)
         ax1.set_title("vit")
         ax2.set_title("bal")
-        plt.savefig(os.path.join(save_dir, "vit_bal_all_compare.png"))
+        plt.savefig(os.path.join(save_dir, "vit_bal_all_compare.pdf"))
         plt.close()
     def shlow_single_distrib(data):
         save_dir = "./"
         fig, (ax1) = plt.subplots(1, 1, figsize=(10, 10))  # 1行2列的子图
         ax1.hist(data, bins=20, color='blue', alpha=0.7)
         ax1.set_title("vit")
-        plt.savefig(os.path.join(save_dir, "vit_all_balance_cifar100.png"))
+        plt.savefig(os.path.join(save_dir, "vit_all_balance_cifar100.pdf"))
         plt.close()
-    def plot_ax(ax, data, name):
-        ax.hist(data, bins=20, color='blue', alpha=0.7)
-        ax.set_title(name)
+    def plot_ax(ax, data, name=None, color='blue'):
+        ax.hist(data, bins=40, color=color, alpha=0.7)
+        if name != None:
+            ax.set_title(name)
 
     def pow_bal(bal, vit, labels):
         save_dir = "./bal_hist"
@@ -246,7 +247,7 @@ def compare_distrib():
             for m in range(0, 6):
                 plot_ax(l2[m], torch.pow(bal_i, 1 / (m+6)), name=f"bal.pow(1/{m+6})")
 
-            plt.savefig(os.path.join(save_dir, str(i)+".png"))
+            plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
             plt.close()
     def box_cox(bal, vit, labels):
         from scipy import stats
@@ -259,8 +260,9 @@ def compare_distrib():
             fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
             plot_ax(ax0, vit_i, name='vit')
             plot_ax(ax1, transformed_data, name='box-cox')
-            plt.savefig(os.path.join(save_dir, str(i)+".png"))
+            plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
             plt.close()
+
 
     def box_cox_all(bal, vit):
         from scipy import stats
@@ -279,7 +281,7 @@ def compare_distrib():
         fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
         plot_ax(ax0, vit, name='vit')
         plot_ax(ax1, transformed_data, name='box-cox')
-        plt.savefig(os.path.join(save_dir, "vit_bal_all_boxcox_translate_compare.png"))
+        plt.savefig(os.path.join(save_dir, "vit_bal_all_boxcox_translate_compare.pdf"))
         plt.close()
 
 
@@ -297,7 +299,7 @@ def compare_distrib():
             fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
             plot_ax(ax0, vit_i, name='vit')
             plot_ax(ax1, transformed_data, name='exp')
-            plt.savefig(os.path.join(save_dir, str(i)+".png"))
+            plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
             plt.close()
     def e_transform2(bal, vit, labels):
         import os
@@ -312,7 +314,7 @@ def compare_distrib():
             fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
             plot_ax(ax0, vit_i, name='vit')
             plot_ax(ax1, transformed_data, name='1/exp(-x)')
-            plt.savefig(os.path.join(save_dir, str(i)+".png"))
+            plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
             plt.close()
 
 
@@ -329,7 +331,7 @@ def compare_distrib():
             fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
             plot_ax(ax0, vit_i, name='vit')
             plot_ax(ax1, transformed_data, name='log')
-            plt.savefig(os.path.join(save_dir, str(i)+".png"))
+            plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
             plt.close()
 
 
@@ -350,7 +352,7 @@ def compare_distrib():
             fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
             plot_ax(ax0, vit_i, name='vit')
             plot_ax(ax1, kde_values, name='kde_values')
-            plt.savefig(os.path.join(save_dir, str(i) + ".png"))
+            plt.savefig(os.path.join(save_dir, str(i) + ".pdf"))
             plt.close()
     # e_transform2(bal, vit, labels)
     def shapiro_wilk_test(data):
@@ -411,15 +413,29 @@ def compare_distrib():
         print(f"Kurtosis: {kurt}")
 
     # box_cox_all(bal, vit)
+    def box_cox_ori_bc(bal, labels):
+        from scipy import stats
+        import numpy as np
+        save_dir = "./boxcox_ori_bc3"
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+        for i in range(100):
+            bal_i = bal[labels == i]
+            
+            transformed_data, lambda_value = stats.boxcox(bal_i.numpy())
+            transformed_data = (transformed_data - min(transformed_data))/(max(transformed_data) - min(transformed_data))
+            fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(20, 8))  # 1行2列的子图
+            plot_ax(ax0, bal_i, color=[0,0.4470,0.7410] )
+            plot_ax(ax1, transformed_data,  color=[0,0.4470, 0.7410])
+            plt.savefig(os.path.join(save_dir, str(i)+".pdf"))
+            plt.close()
 
-    shlow_single_distrib(vit)
+    box_cox_ori_bc(bal, labels)
 
 
 
 
-
-
-
+        
 if __name__ == '__main__':
     args = argparse.ArgumentParser(description='PyTorch Template')
     args.add_argument('-c', '--config', default=None, type=str,
